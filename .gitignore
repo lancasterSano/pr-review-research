@@ -1,0 +1,13 @@
+# local and IDE
+.idea/
+.claude/
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# secrets and collected data (never commit)
+.env
+data/

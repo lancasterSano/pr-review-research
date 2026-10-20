@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "pr-review-research: GitHub pull request data collector"
+type: software
+authors:
+  - family-names: Aratovskyi
+    given-names: Oleksandr
+    email: alex.aratovskiy@stud.op.edu.ua
+    affiliation: 'National University "Odesa Polytechnic"'
+    orcid: "https://orcid.org/0009-0006-0854-8582"
+repository-code: "https://github.com/lancasterSano/pr-review-research"
+license: MIT
+version: "1.0.0"
+abstract: >-
+  Collector of closed pull requests and their review history from public
+  GitHub repositories (GraphQL API), with per-PR feature computation and a
+  manifest of a 40-repository corpus. Built for a PhD dissertation on the
+  efficiency of the code review process.
+keywords:
+  - code review
+  - pull requests
+  - GitHub
+  - mining software repositories
