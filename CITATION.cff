@@ -17,6 +17,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.23534422
     description: DOI of version 1.1.0, used in the AAIT 2026 paper.
+  - type: doi
+    value: 10.5281/zenodo.23537410
+    description: DOI of version 1.2.0, with the HAIT 2026 models and the later analyses.
 license: MIT
 version: "1.2.0"
 date-released: "2026-10-21"

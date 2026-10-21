@@ -393,6 +393,7 @@ The code is archived on Zenodo:
 
 - all versions (resolves to the latest): [10.5281/zenodo.23534421](https://doi.org/10.5281/zenodo.23534421)
 - v1.1.0, the version used in the AAIT 2026 paper: [10.5281/zenodo.23534422](https://doi.org/10.5281/zenodo.23534422)
+- v1.2.0, which adds the HAIT 2026 models and the later analyses: [10.5281/zenodo.23537410](https://doi.org/10.5281/zenodo.23537410)
 
 ## Contact
 
