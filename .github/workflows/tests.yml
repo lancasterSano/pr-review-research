@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Python 3.9 has no builds for Ubuntu 26.04
     strategy:
       fail-fast: false
       matrix:
