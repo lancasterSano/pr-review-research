@@ -1,5 +1,7 @@
 # pr-review-research
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23534421.svg)](https://doi.org/10.5281/zenodo.23534421)
+
 Collector of pull request data from GitHub, built for the analysis in a PhD
 dissertation on the efficiency of the code review process (National University
 "Odesa Polytechnic").
@@ -327,6 +329,11 @@ obtain the data, run the collector.
 
 If you use this code, please cite it with the metadata in
 [`CITATION.cff`](CITATION.cff) (GitHub shows it as "Cite this repository").
+
+The code is archived on Zenodo:
+
+- all versions (resolves to the latest): [10.5281/zenodo.23534421](https://doi.org/10.5281/zenodo.23534421)
+- v1.1.0, the version used in the AAIT 2026 paper: [10.5281/zenodo.23534422](https://doi.org/10.5281/zenodo.23534422)
 
 ## Contact
 
