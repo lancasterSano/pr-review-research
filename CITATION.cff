@@ -11,6 +11,7 @@ authors:
 repository-code: "https://github.com/lancasterSano/pr-review-research"
 license: MIT
 version: "1.0.0"
+date-released: "2026-10-21"
 abstract: >-
   Collector of closed pull requests and their review history from public
   GitHub repositories (GraphQL API), with per-PR feature computation and a
