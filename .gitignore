@@ -12,3 +12,6 @@ __pycache__/
 .env
 data/
 rank/output/
+revision/output/
+predict/output/
+catboost_info/

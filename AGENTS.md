@@ -11,7 +11,10 @@ Guidance for coding agents working in this repository.
 - `enrich/compute_features.py`, `enrich/review_rounds.py`: per-PR features from `data/raw/`.
 - `rank/`: reviewer ranking experiments (AAIT 2026 paper) on `data/raw/`;
   outputs go to `rank/output/` (not committed).
-- `fetch/tests/`, `rank/tests/`: offline tests (no network).
+- `predict/week4_modeling.py`: HAIT 2026 models; outputs go to `predict/output/`.
+- `revision/`: later analyses (HAIT review, ІКТ, ІТІА, dissertation chapter 2);
+  outputs go under `DISSERTATION_DIR` or `revision/output/` (`revision/paths.py`).
+- `fetch/tests/`, `rank/tests/`, `revision/tests/`: offline tests (no network).
 - `corpus/manifest_v2.csv`: aggregate corpus manifest.
 
 ## Commands
@@ -32,6 +35,7 @@ Tests must not call the network. Use the fake clients in `fetch/tests/`.
   refuse to resume with different corpus parameters.
 - Keep the field lists in `README.md` ("What is collected", "Fields that
   concern people") in step with the GraphQL queries.
-- Never commit `data/`, `.env`, or any collected PR data.
+- Never commit `data/`, `.env`, or any collected PR data. Analysis outputs
+  (`predict/output/`, `revision/output/`) stay out of git: some contain logins.
 - Never print, log or write the GitHub token. Read it only through
   `load_token()`.

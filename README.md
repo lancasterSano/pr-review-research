@@ -8,8 +8,8 @@ dissertation on the efficiency of the code review process (National University
 
 The repository contains the code that downloads closed pull requests with their
 review history from public GitHub repositories, a script that turns the raw
-data into per-PR features, the reviewer ranking experiments, and a manifest of
-the collected corpus. It does not
+data into per-PR features, the models and analyses of the dissertation papers,
+the reviewer ranking experiments, and a manifest of the collected corpus. It does not
 contain the raw data itself (see [Personal data](#personal-data-and-github-terms)).
 
 ## Contents
@@ -24,8 +24,11 @@ contain the raw data itself (see [Personal data](#personal-data-and-github-terms
 | `enrich/compute_features.py` | Builds per-PR features (PR, author history, project context, targets) from the frozen corpus. |
 | `enrich/review_rounds.py` | Counts review rounds of a PR; used by `compute_features.py`. |
 | `rank/` | Reviewer ranking experiments of the AAIT 2026 paper: candidate pools, history features, learned ranker, baselines, constrained re-ranking. See [Reviewer ranking](#reviewer-ranking). |
+| `predict/week4_modeling.py` | Submission-time models of the HAIT 2026 paper on the frozen corpus. |
+| `revision/` | Later analyses on the frozen corpus (HAIT review, ІКТ 2026, ІТІА 2026, dissertation chapter 2). See [Analyses](#analyses-of-the-12-repository-corpus). |
 | `fetch/tests/` | Offline tests for the corpus v2 collector (no network). |
 | `rank/tests/` | Offline tests for the ranking pipeline (synthetic data). |
+| `revision/tests/` | Offline tests for the review iteration rule and analysis helpers (synthetic data). |
 | `corpus/manifest_v2.csv` | Corpus v2 manifest: repository, primary language, window and PR counts. |
 
 ## What is collected
@@ -288,6 +291,62 @@ requests.
 The paper used a dump collected in April 2026. A new collection returns newer
 pull requests, so the numbers will differ from the published ones; the
 pipeline and the protocol stay the same. `rank/output/` is not committed.
+
+## Analyses of the 12-repository corpus
+
+`predict/week4_modeling.py` holds the submission-time models of the HAIT 2026
+paper "A process-grounded framework for submission-time prediction of code
+review outcomes". `revision/` holds the later analyses on the same corpus: the
+experiments added during the HAIT review, the ІКТ 2026 article on AI-assisted
+review, the ІТІА 2026 abstract on review duration, and numbers for chapter 2 of
+the dissertation. The script names follow the task labels used in the papers'
+review responses, so they are kept as they are.
+
+All of them read the frozen corpus: `data/raw/<owner>_<name>/{merged,open}_prs.json`
+from `fetch/fetch_prs.py` and `data/processed/` from `enrich/compute_features.py`.
+
+```bash
+python predict/week4_modeling.py              # T1/T2 models -> predict/output/
+python revision/task1_pin_t0.py               # any revision/ script, run from the repository root
+```
+
+Results go under an output root, in the folder layout the papers use. Set the
+root with `DISSERTATION_DIR` in the environment or in `.env`; without it,
+results go to `revision/output/`. Neither `predict/output/` nor
+`revision/output/` is committed. Scripts that build on earlier results read
+them from the same root, so run them in the order of the table.
+
+| Script | Paper | Results (under the output root) |
+|---|---|---|
+| `stats_variability.py` | HAIT | `journal_articles/HAIT_2026/revision_results/A-*`: cross-validation variability, paired tests, per-repository LORO |
+| `task1_pin_t0.py` | HAIT | `.../revision_results/B-task1-t0.json`, `B-silence-age.npz`: observation date per repository, staleness label at that date |
+| `task2_delta_sensitivity.py` | HAIT | `.../revision_results/B-delta-sensitivity.*`: staleness threshold sensitivity |
+| `task3_age_strata.py` | HAIT | `.../revision_results/B-age-strata.*`: age strata and right-censoring |
+| `task3b_recency_proxy.py` | HAIT | `.../revision_results/B-recency-proxy.csv`: diagnostic of the recency proxy |
+| `taskC1_login_scan.py` | HAIT | `.../revision_results/C-login-classification.csv`: class of every participant login (contains logins; keep it out of version control) |
+| `taskC1_marker_scan.py` | HAIT | printed check of AI-review text signatures by login |
+| `taskC2_prevalence.py` | HAIT | `.../revision_results/C-ai-*.csv`: prevalence of AI-assistant participation |
+| `taskC3_ai_adoption_feature.py` | HAIT | `.../revision_results/C-ai-adoption-feature.csv`, `C-model-deltas.json`: repository AI-adoption rate as a feature |
+| `taskC3b_t2_clock_check.py` | HAIT | `.../revision_results/C-t2-clock-check.json`: is that gain a clock effect |
+| `taskC4_observational.py` | HAIT | `.../revision_results/C-ai-observational.csv`: PRs with and without an AI review |
+| `taskD_definition3_label.py` | HAIT | `.../revision_results/D-definition3-*`: staleness target rebuilt from Definition 3 |
+| `taskD2_shap_new_t2.py` | HAIT | `.../revision_results/D-shap-new-t2.json`: SHAP importances of that model |
+| `taskE1_shap_cache.py` | HAIT | `.../revision_results/E-shap-values.npz`: SHAP values for figures 4 and 5 |
+| `taskE1_build_dataset.py` | ІКТ | `conf_papers/october_2026/IKT2026/data/E1-*`: threads and reviews by AI assistants, human reactions |
+| `taskE1_reactions_table.py` | ІКТ | `.../IKT2026/data/E1-table4*.md`: table of human reactions to assistant output |
+| `taskC5_ikt_ci_strata.py` | ІКТ | `.../IKT2026/data/C5-*`: Holm correction, bootstrap intervals |
+| `taskF1_duration_language.py` | ІТІА | `conf_papers/october_2026/ITIA2026/data/F-*`: review duration, transfer across projects and languages |
+| `taskH_ikt_table5_human.py` | ІКТ | `.../IKT2026/data/H-*`: tables 5 and 6 with iterations counted from human events only |
+| `taskI_r2_iterations_literal.py` | dissertation, ch. 2 | `dissertation/rozdil_2/tables/r2_iterations_literal.json` |
+
+Shared modules: `paths.py` (output root), `common.py` and `taskC_common.py`
+(data access, login classes), `taskE1_common.py` (ІКТ helpers),
+`review_iterations.py` (the review iteration rule used across the
+dissertation). The ІКТ article is "Методологія перегляду програмного коду з
+підтримкою штучного інтелекту на основі моделі процесу" (Інформатика. Культура.
+Техніка, 2026); the ІТІА abstract is "Прогнозування тривалості перевірки
+програмного коду та перенесення прогнозу між проєктами і мовами програмування"
+(ІТІА 2026).
 
 ## Corpus manifest
 
