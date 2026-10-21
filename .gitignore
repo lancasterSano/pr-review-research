@@ -11,3 +11,4 @@ __pycache__/
 # secrets and collected data (never commit)
 .env
 data/
+rank/output/

@@ -6,7 +6,8 @@ dissertation on the efficiency of the code review process (National University
 
 The repository contains the code that downloads closed pull requests with their
 review history from public GitHub repositories, a script that turns the raw
-data into per-PR features, and a manifest of the collected corpus. It does not
+data into per-PR features, the reviewer ranking experiments, and a manifest of
+the collected corpus. It does not
 contain the raw data itself (see [Personal data](#personal-data-and-github-terms)).
 
 ## Contents
@@ -20,7 +21,9 @@ contain the raw data itself (see [Personal data](#personal-data-and-github-terms
 | `fetch/fetch_prs.py` | Frozen collector of the earlier 12-repository corpus (HAIT 2026 paper). Kept unchanged for reproducibility. |
 | `enrich/compute_features.py` | Builds per-PR features (PR, author history, project context, targets) from the frozen corpus. |
 | `enrich/review_rounds.py` | Counts review rounds of a PR; used by `compute_features.py`. |
+| `rank/` | Reviewer ranking experiments of the AAIT 2026 paper: candidate pools, history features, learned ranker, baselines, constrained re-ranking. See [Reviewer ranking](#reviewer-ranking). |
 | `fetch/tests/` | Offline tests for the corpus v2 collector (no network). |
+| `rank/tests/` | Offline tests for the ranking pipeline (synthetic data). |
 | `corpus/manifest_v2.csv` | Corpus v2 manifest: repository, primary language, window and PR counts. |
 
 ## What is collected
@@ -245,6 +248,44 @@ exist. It writes `data/processed/<repo>_{merged,open}_features.csv` for each
 repository and PR type that has records after filtering, and the combined
 `all_merged_features.csv` / `all_open_features.csv` only when there are
 merged / open records.
+
+## Reviewer ranking
+
+`rank/` holds the experiments of the paper "Ranking pull request reviewers by
+expertise, workload, and expected response time" (Applied Aspects of
+Information Technology, 2026). Like `compute_features.py`, it reads the frozen
+corpus: `data/raw/<owner>_<name>/merged_prs.json` for the 12 repositories in
+`rank.build.REPOS`. Collect them with `fetch/fetch_prs.py` first.
+
+```bash
+python -m rank.build             # pair matrix (PR x candidate) per repository -> rank/output/
+python -m rank.run_experiments   # dataset profile, baselines, rankers, leave-one-repo-out -> rank/output/results/
+python -m rank.run_e4            # trade-off: weighted sum and constrained re-ranking -> rank/output/results/
+python -m rank.run_r1            # review round: most-familiar baseline, paired realized latency -> rank/output/results/r1_*.csv
+```
+
+`run_r1` retrains nothing: it reads `rank/output/results/test_scored.parquet`
+written by `run_experiments`. It adds the "Most familiar" baseline (candidates
+ordered by how many of the author's earlier pull requests they reviewed, ties
+broken by 90-day activity) and compares the realized response time of the
+relevance-only ranker and the latency-constrained re-ranking on the same pull
+requests.
+
+| Module | What it does |
+|---|---|
+| `events.py` | Reviewer events and actual reviewers of a PR; bot filter. |
+| `history.py` | Reviewer and author history strictly before PR creation. |
+| `build.py` | Candidate pools (180 days), STRICT and CONTENT features, 90-day warm-up. |
+| `split.py` | Chronological 60/20/20 split per repository. |
+| `ranker.py` | LightGBM lambdarank model. |
+| `evaluate.py`, `metrics.py` | MRR, Hit@k, NDCG@5, Gini of first choices, bootstrap intervals. |
+| `tradeoff.py` | Weighted-sum penalty on workload and expected latency. |
+| `constrained.py` | Re-ranking within a relevance tolerance by expected latency or exposure; rules inspired by prior work. |
+| `selection.py` | Choice of configurations on the validation split. |
+
+The paper used a dump collected in April 2026. A new collection returns newer
+pull requests, so the numbers will differ from the published ones; the
+pipeline and the protocol stay the same. `rank/output/` is not committed.
 
 ## Corpus manifest
 

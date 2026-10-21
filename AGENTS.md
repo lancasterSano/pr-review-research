@@ -9,7 +9,9 @@ Guidance for coding agents working in this repository.
 - `fetch/verify_corpus_v2.py`, `fetch/corpus_v2_status.py`: checks and progress.
 - `fetch/fetch_prs.py`: frozen collector of the earlier 12-repository corpus.
 - `enrich/compute_features.py`, `enrich/review_rounds.py`: per-PR features from `data/raw/`.
-- `fetch/tests/`: offline tests (no network).
+- `rank/`: reviewer ranking experiments (AAIT 2026 paper) on `data/raw/`;
+  outputs go to `rank/output/` (not committed).
+- `fetch/tests/`, `rank/tests/`: offline tests (no network).
 - `corpus/manifest_v2.csv`: aggregate corpus manifest.
 
 ## Commands
