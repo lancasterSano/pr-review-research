@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using these metadata."
-title: "pr-review-research: GitHub pull request data collector and reviewer ranking experiments"
+title: "pr-review-research: GitHub pull request data collector, code review analyses and reviewer ranking experiments"
 type: software
 authors:
   - family-names: Aratovskyi
@@ -18,14 +18,15 @@ identifiers:
     value: 10.5281/zenodo.23534422
     description: DOI of version 1.1.0, used in the AAIT 2026 paper.
 license: MIT
-version: "1.1.0"
+version: "1.2.0"
 date-released: "2026-10-21"
 abstract: >-
   Collector of closed pull requests and their review history from public
   GitHub repositories (GraphQL API), with per-PR feature computation and a
-  manifest of a 40-repository corpus, and the reviewer ranking experiments of
-  the AAIT 2026 paper. Built for a PhD dissertation on the efficiency of the
-  code review process.
+  manifest of a 40-repository corpus, the submission-time models and later
+  analyses of the HAIT 2026, ІКТ 2026 and ІТІА 2026 papers, and the reviewer
+  ranking experiments of the AAIT 2026 paper. Built for a PhD dissertation on
+  the efficiency of the code review process.
 keywords:
   - code review
   - pull requests
