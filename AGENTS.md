@@ -14,6 +14,9 @@ Guidance for coding agents working in this repository.
 - `predict/week4_modeling.py`: HAIT 2026 models; outputs go to `predict/output/`.
 - `revision/`: later analyses (HAIT review, ІКТ, ІТІА, dissertation chapter 2);
   outputs go under `DISSERTATION_DIR` or `revision/output/` (`revision/paths.py`).
+- `revision/r2/`, `revision/r3_*`, `revision/r4_calc/`, `revision/r3_calib_adversarial/`:
+  dissertation chapters 2 to 4 on corpus v2; outputs go to `revision/output/`.
+  Run order and environment variables: README, "Analyses of corpus v2".
 - `fetch/tests/`, `rank/tests/`, `revision/tests/`: offline tests (no network).
 - `corpus/manifest_v2.csv`: aggregate corpus manifest.
 

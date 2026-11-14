@@ -51,7 +51,7 @@ def eval_split(df, split):
     return d[keep]
 
 
-def main():
+def main(skip_loro=False):
     RES.mkdir(exist_ok=True)
     pairs, prs = load()
     log(f"pairs {len(pairs):,} prs {len(prs):,}")
@@ -86,7 +86,8 @@ def main():
     pd.DataFrame(imps).to_csv(RES / "e2_importance.csv", index=False)
 
     # ---- E3 LORO (STRICT and CONTENT) ------------------------------------
-    for name, F in feats.items():
+    # --skip-loro: the ranking-constant sensitivity run does not use LORO
+    for name, F in ({} if skip_loro else feats).items():
         col = f"s_loro_{name}"; scored[col] = np.nan
         for repo in scored.repo.unique():
             tr, va = train[train.repo != repo], val[val.repo != repo]
@@ -124,4 +125,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(skip_loro="--skip-loro" in sys.argv[1:])

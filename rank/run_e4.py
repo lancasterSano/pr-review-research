@@ -15,7 +15,7 @@ from rank.build import STRICT_FEATURES
 from rank.run_experiments import RES, eval_split, load, log
 from rank.selection import select_on_validation
 
-DELTA = 0.05
+DELTA = 0.05   # admissible: validation Hit@3 >= (1 - DELTA) * Hit@3 of rel_only (AAIT 2026: 95 %)
 WSUM_GRID = [0.1, 0.2, 0.3, 0.5, 1.0]
 EPS_GRID = [0.02, 0.05, 0.1, 0.2, 0.3]
 WEIGHTS = [(1.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
@@ -94,16 +94,16 @@ def ablations_of(name):
 SELECT_OBJ = {"gini": "gini_top1_full", "lat": "top1_lat_med"}
 
 
-def select_and_headline():
+def select_and_headline(delta=DELTA):
     """Validation-based selection and the headline test table, from the saved CSVs."""
     ev_val = pd.read_csv(RES / "e4v2_val_all.csv"); ev_test = pd.read_csv(RES / "e4v2_test_all.csv")
     conc = pd.read_csv(RES / "e4v2_actual_concentration.csv")
     micro = ev_val[ev_val.repo == "ALL (micro)"]
     fam_w = micro[micro.config.str.startswith("wsum_") | (micro.config == "rel_only")]
     fam_c = micro[(micro.config.str.startswith("constr_") & ~micro.config.str.contains("_e1.0_")) | (micro.config == "rel_only")]
-    chosen = {f"{fam}_{obj}": select_on_validation(df, "rel_only", DELTA, col)
+    chosen = {f"{fam}_{obj}": select_on_validation(df, "rel_only", delta, col)
               for fam, df in (("wsum", fam_w), ("constr", fam_c)) for obj, col in SELECT_OBJ.items()}
-    log(f"E4v2 chosen on validation: {chosen}")
+    log(f"E4v2 chosen on validation (delta {delta}): {chosen}")
     headline = ["rel_only", "most_active", "most_recent", "least_loaded_active", "fastest", "moc2r_like", "rebai_like"]
     headline += [c for c in chosen.values() if c not in headline]
     abl = {}
@@ -127,7 +127,7 @@ def select_and_headline():
     return chosen, abl
 
 
-def main():
+def main(delta=DELTA):
     t = time.time()
     pairs, prs = load()
     pairs = ev.add_baseline_scores(pairs, seed=0)
@@ -149,13 +149,21 @@ def main():
     cfg_test = score_configs(test); log("E4v2 test configs scored")
     ev_test = evaluate_all(test, cfg_test, "test"); ev_test.to_csv(RES / "e4v2_test_all.csv", index=False)
     conc = actual_concentration(test); conc.to_csv(RES / "e4v2_actual_concentration.csv", index=False)
-    select_and_headline()
+    select_and_headline(delta)
     log(f"E4v2 done in {time.time()-t:.0f}s")
 
 
+def parse_args(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description="E4 v2 trade-off experiments.")
+    ap.add_argument("--select-only", action="store_true", help="only redo the validation selection from the saved CSVs")
+    ap.add_argument("--delta", type=float, default=DELTA, help="relative Hit@3 loss allowed on validation")
+    return ap.parse_args(argv)
+
+
 if __name__ == "__main__":
-    import sys
-    if "--select-only" in sys.argv:
-        select_and_headline()
+    a = parse_args()
+    if a.select_only:
+        select_and_headline(a.delta)
     else:
-        main()
+        main(a.delta)
