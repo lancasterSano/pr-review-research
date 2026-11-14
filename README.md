@@ -9,7 +9,8 @@ dissertation on the efficiency of the code review process (National University
 The repository contains the code that downloads closed pull requests with their
 review history from public GitHub repositories, a script that turns the raw
 data into per-PR features, the models and analyses of the dissertation papers,
-the reviewer ranking experiments, and a manifest of the collected corpus. It does not
+the reviewer ranking experiments, the analyses behind chapters 2 to 4 of the
+dissertation, and a manifest of the collected corpus. It does not
 contain the raw data itself (see [Personal data](#personal-data-and-github-terms)).
 
 ## Contents
@@ -25,11 +26,13 @@ contain the raw data itself (see [Personal data](#personal-data-and-github-terms
 | `enrich/review_rounds.py` | Counts review rounds of a PR; used by `compute_features.py`. |
 | `rank/` | Reviewer ranking experiments of the AAIT 2026 paper: candidate pools, history features, learned ranker, baselines, constrained re-ranking. See [Reviewer ranking](#reviewer-ranking). |
 | `predict/week4_modeling.py` | Submission-time models of the HAIT 2026 paper on the frozen corpus. |
-| `revision/` | Later analyses on the frozen corpus (HAIT review, ІКТ 2026, ІТІА 2026, dissertation chapter 2). See [Analyses](#analyses-of-the-12-repository-corpus). |
+| `revision/` | Later analyses on the frozen 12-repository corpus (HAIT review, ІКТ 2026, ІТІА 2026, an early chapter 2 table). See [Analyses](#analyses-of-the-12-repository-corpus). |
+| `revision/r2/`, `revision/r3_*`, `revision/r4_calc/`, `revision/r3_calib_adversarial/` | Chapter 2 tables and the prediction, reviewer ranking and decision-rule analyses of dissertation chapters 3 and 4 on corpus v2. See [Chapters 2 to 4](#analyses-of-corpus-v2-dissertation-chapters-2-to-4). |
 | `fetch/tests/` | Offline tests for the corpus v2 collector (no network). |
 | `rank/tests/` | Offline tests for the ranking pipeline (synthetic data). |
-| `revision/tests/` | Offline tests for the review iteration rule and analysis helpers (synthetic data). |
+| `revision/tests/` | Offline tests for the review iteration rule, the chapter 3 feature table (no feature may use information after submission) and the reporting statistics (synthetic data). |
 | `corpus/manifest_v2.csv` | Corpus v2 manifest: repository, primary language, window and PR counts. |
+| `requirements.txt`, `requirements-alignment.txt` | Python packages; the second is the separate pm4py environment of `revision/r2/r2_alignment_v2.py`. |
 
 ## What is collected
 
@@ -129,7 +132,7 @@ messages, branch names); its query text is in `MERGED_PR_QUERY` and
 
 ## Installation
 
-Tested with Python 3.9 and 3.12.
+Tested with Python 3.9 and 3.12 (the analyses of corpus v2 with Python 3.9).
 
 ```bash
 git clone https://github.com/lancasterSano/pr-review-research.git
@@ -139,6 +142,9 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m pytest -q
 ```
+
+The alignment script of chapter 2 needs its own environment; see
+[Analyses of corpus v2](#analyses-of-corpus-v2-dissertation-chapters-2-to-4).
 
 ## GitHub token
 
@@ -292,6 +298,14 @@ The paper used a dump collected in April 2026. A new collection returns newer
 pull requests, so the numbers will differ from the published ones; the
 pipeline and the protocol stay the same. `rank/output/` is not committed.
 
+Since v1.3.0 the defaults still give the paper setting, and the dissertation
+runs add options: `RANK_ACCOUNTS=shared` classifies accounts with the audited
+lists of `revision/taskC_common.py` instead of the paper's regex (default
+`regex`); `RANK_RAW_DIR` and `RANK_OUT_DIR` move input and output;
+`rank.build --warmup-days/--cand-window-days/--fractions`, `rank.run_e4
+--delta/--select-only` and `rank.run_experiments --skip-loro` vary the constants
+for the sensitivity run (`revision/r3_rank_sens.sh`).
+
 ## Analyses of the 12-repository corpus
 
 `predict/week4_modeling.py` holds the submission-time models of the HAIT 2026
@@ -304,6 +318,11 @@ review responses, so they are kept as they are.
 
 All of them read the frozen corpus: `data/raw/<owner>_<name>/{merged,open}_prs.json`
 from `fetch/fetch_prs.py` and `data/processed/` from `enrich/compute_features.py`.
+
+To reproduce the published numbers of these papers, use version 1.2.0
+([10.5281/zenodo.23537410](https://doi.org/10.5281/zenodo.23537410)): version
+1.3.0 extends the account lists in `revision/taskC_common.py`, and some of the
+added accounts occur in this corpus.
 
 ```bash
 python predict/week4_modeling.py              # T1/T2 models -> predict/output/
@@ -347,6 +366,110 @@ dissertation). The ІКТ article is "Методологія перегляду 
 Техніка, 2026); the ІТІА abstract is "Прогнозування тривалості перевірки
 програмного коду та перенесення прогнозу між проєктами і мовами програмування"
 (ІТІА 2026).
+
+## Analyses of corpus v2 (dissertation chapters 2 to 4)
+
+These scripts compute the numbers of dissertation chapters 2, 3 and 4 on
+corpus v2 (`data/raw_v2/`) and, for reviewer ranking, on the earlier
+12-repository dumps (`data/raw/`, `data/processed/`). They end at files of
+numbers and tables under `revision/output/` (not committed; some files contain
+logins). Putting those numbers into the text of the dissertation is not part of
+this repository.
+
+The data is not published (see [Personal data](#personal-data-and-github-terms)).
+The numbers were computed on the snapshot collected on 16–20 October 2026; step
+`00_manifest` of `r3_night.sh` writes the SHA-256 of the corpus files it reads,
+so a copy of that snapshot can be checked before rerunning. A fresh collection
+gives close but not identical numbers, because pull requests on GitHub change
+over time.
+
+### Run order
+
+Run from the repository root of a git clone with tags (step `04a` of
+`r3_night.sh` unpacks `v1.2.0` with `git archive`). The scripts were run on
+macOS with Python 3.9; the shell scripts call `caffeinate`, `pmset` and
+`shasum`. Steps 1 to 3 take hours and resume after an interruption.
+
+```bash
+# 0. inputs from the earlier analyses
+python enrich/compute_features.py               # data/processed/, read by step 0 and the r3_night.sh manifest
+python revision/taskD_definition3_label.py        # HAIT staleness labels, used by steps 04a/04b of r3_night.sh
+python revision/taskV2_login_audit.py             # account audit of corpus v2, used by chapter 2 tables (--raw DIR if not data/raw_v2)
+# 1-3. chapter 3: full run, ranking sensitivity, then the rerun the dissertation reports
+bash revision/r3_night.sh                         # revision/output/r3
+bash revision/r3_rank_sens.sh                     # revision/output/r3/rank_sens
+bash revision/r3_rerun_0211.sh                    # revision/output/r3_b40d, with the reporting step
+R3_ROOT=revision/output/r3_b40d python revision/r3_report_example.py
+# 4. chapter 2 tables (revision/r2/), on the PR table of the rerun
+python revision/r2/r2_raw_v2.py
+/path/to/alignment-env/bin/python revision/r2/r2_alignment_v2.py   # environment of requirements-alignment.txt
+python revision/r2/make_tables_r2.py              # revision/output/r2/r2_numbers.json
+# 5. calibration on short histories (order matters)
+python revision/r3_calib_stability.py
+python revision/r3_calib_adversarial/adv_calib.py
+python revision/r3_calib_adversarial/adv_reliab.py
+python revision/r3_calib_adversarial/adv_rules2.py
+python revision/r3_calib_adversarial/adv_thr_nominfire.py
+# 6. chapter 4 checks
+python revision/r4_calc/r4_p2_trigger.py
+python revision/r4_calc/r4_p4_feedback.py
+python revision/r4_calc/r4_p4_ratio.py
+python revision/r4_calc/r4_p5_definition.py
+python revision/r4_calc/r4_no_overlap.py
+python revision/r4_calc/r4_no_overlap_thr.py
+python revision/r4_calc/r4_e5_numbers.py
+# 7. spread of the E1 deviation categories: copy r2_alignment_v2.json of several
+#    runs of step 4 into revision/output/r4/e1_repeats/runs/ (the first as ref.json)
+python revision/r4_calc/r4_e1_repeats.py
+```
+
+| Script | What it computes |
+|---|---|
+| `r3_v2_prep.py` | PR table of corpus v2: submission time, labels from human events only, features available at submission, revert links |
+| `r3_v2_models.py` | Prediction models (CatBoost, LightGBM, logistic regression, baselines) under temporal, leave-one-repository-out and leave-one-language-out protocols |
+| `r3_night.sh`, `r3_rerun_0211.sh` | The chapter 3 runs; every step leaves a `.done` marker and a restart continues |
+| `r3_report.py`, `r3_report_models.py`, `r3_report_stats.py`, `r3_report_rank.py`, `r3_report_r4.py`, `r3_report_example.py` | Reporting step: thresholds of the decision rules, calibration, transfer to a new project, ranking numbers (keys and published AAIT values in `r3_rank_keys.json`), rule R4, the worked example |
+| `r3_ladder_v1.py`, `r3_rank_sens.sh`, `r3_rank_sens_summary.py` | Contribution of each change on the 12-repository corpus; sensitivity of the ranking constants |
+| `r2/` | Chapter 2 tables: review threads and assistant reviews, replay of the traces by the state machine, alignments of the process projection, all chapter 2 numbers |
+| `r3_calib_stability.py`, `r3_calib_adversarial/` | Calibration and thresholds on short project histories |
+| `r4_calc/` | Chapter 4 checks of the methodology premises, the rollback rule and rule R4; see [`revision/r4_calc/README.md`](revision/r4_calc/README.md) |
+| `taskV2_login_audit.py` | Audit of participant logins of corpus v2 (writes logins; keep the output private) |
+
+Environment variables (all optional; the defaults are the folders above):
+
+| Variable | Meaning |
+|---|---|
+| `SRC_DATA` | data folder of the collector for the shell scripts (default `data/`) |
+| `PY` | Python interpreter for the shell scripts (default `python`) |
+| `R3_RAW_V2`, `R3_RAW_V1` | `data/raw_v2` and `data/raw` for the Python scripts of chapters 2 to 4 (`taskV2_login_audit.py` takes `--raw` instead) |
+| `R3_ROOT`, `R3_OUT` | chapter 3 run folder and its `v2/` subfolder |
+| `R3_THREADS` | threads for model fitting |
+| `R3_PROCESSED` | `data/processed` (features of the 12-repository corpus) |
+| `PRR_RAW_DIR`, `PRR_PROCESSED_DIR`, `F1_OUT_DIR`, `F1_D_LABELS` | data and output folders of the earlier analyses; `r3_night.sh` sets them to rerun the ІТІА 2026 steps on corpus v1 |
+| `R2_DIR` | output of `revision/r2/` (default `revision/output/r2`), read by `r4_calc/` |
+| `R2_LOGIN_AUDIT` | output folder of `taskV2_login_audit.py` (default `revision/output/corpus_v2/login_audit`) |
+| `DISS`, `DISSERTATION_DIR` | output root of the earlier analyses (`revision/paths.py`), where `r3_night.sh` finds the HAIT labels; `r3_night.sh` reads only the environment, not `.env`, so export the same value there |
+| `OUT`, `R3` | output folders of `r3_night.sh` (default `revision/output/r3`) and `r3_rank_sens.sh` (default `$R3/rank_sens`) |
+| `RANK_ACCOUNTS`, `RANK_RAW_DIR`, `RANK_OUT_DIR` | ranking: `shared` uses the audited account lists of `revision/taskC_common.py` instead of the paper's regex (`regex`, the AAIT 2026 setting); input and output folders |
+| `R3_CONTRACT` | optional: read the ranking keys from the dissertation's number contract instead of `r3_rank_keys.json` |
+| `R3_NUMBERS_JSON` | optional: chapter 3 numbers of the dissertation for a comparison in `r4_no_overlap.py` |
+
+`r2_alignment_v2.py` needs pm4py, which is kept out of `requirements.txt`: create
+a separate environment from `requirements-alignment.txt`. Fitness, the share of
+fitting traces and precision repeat exactly; the deviation categories of the
+non-fitting traces do not, because pm4py returns one of several equal-cost
+alignments arbitrarily (a fixed `PYTHONHASHSEED` does not change that). Over seven
+runs the share of non-fitting traces explained by the three named categories was
+89.4 to 89.9 %; `r4_e1_repeats.py` reports the range. The account-audit
+numbers of `make_tables_r2.py` read the account lists of tag `v1.2.0` with
+`git show`, so they also need a git clone with tags.
+
+Fixed seeds: 42 for the models, the ranker and the bootstrap of the reporting
+step; 0 for the random ranking baseline; 20261113 in `r3_calib_stability.py`;
+1 in `adv_reliab.py`; 20261031 for the bootstrap intervals of
+`revision/r2/r2_ai_compare_v2.py`; 20261114 and 20261115 in `revision/r4_calc/`; 20261015
+for the alignment sample.
+
 
 ## Corpus manifest
 

@@ -84,16 +84,17 @@ sys.path.insert(0, _HERE)
 from paths import DISSERTATION  # noqa: E402
 
 from taskC_common import (  # noqa: E402
-    REPO_DIRS, RAW_DIR, MERGED_CSV, classify_login, dir_to_repo,
+    REPO_DIRS, RAW_DIR, MERGED_CSV, classify_account, dir_to_repo,
 )
 from review_iterations import (  # noqa: E402,F401
     RULE_CODE, RULE_LITERAL, count_iterations, include_all, iteration_trace, login_of,
     parse_dt, reviewer_events,
 )
 
-OUT_DIR = os.path.join(DISSERTATION, "conf_papers", "october_2026", "ITIA2026", "data")
-D_LABELS = os.path.join(DISSERTATION, "journal_articles", "HAIT_2026", "revision_results",
-                        "D-definition3-labels.csv")
+# F1_OUT_DIR / F1_D_LABELS: reruns outside the dissertation tree (chapter 3 ladder).
+OUT_DIR = os.environ.get("F1_OUT_DIR") or os.path.join(DISSERTATION, "conf_papers", "october_2026", "ITIA2026", "data")
+D_LABELS = os.environ.get("F1_D_LABELS") or os.path.join(
+    DISSERTATION, "journal_articles", "HAIT_2026", "revision_results", "D-definition3-labels.csv")
 PR_TABLE = os.path.join(OUT_DIR, "F-pr-level.csv")
 
 COMMITS_MODE = "t0min1"      # set by configure(); see module docstring
@@ -161,20 +162,19 @@ EXTRA_AUTOMATION = {
 
 # ── Participant classification ──────────────────────────────────────────────
 
-def participant_class(login):
+def participant_class(login, typename=None):
     """'human' | 'ai_assistant' | 'other_bot' | 'uncertain'.
 
     A missing login (deleted account, shown as "ghost" on GitHub) is treated as
-    human: GitHub App accounts are not deleted this way.
+    human: GitHub App accounts are not deleted this way. `typename` is the
+    account type from corpus v2; corpus v1 callers leave it out.
     """
     if not login:
         return "human"
     k = login.lower()
-    base = classify_login(login)
+    base = classify_account(login, typename)
     if base != "human":
         return base
-    if k.endswith("[bot]"):
-        return "other_bot"
     if k in EXTRA_AUTOMATION:
         return "other_bot"
     return "human"

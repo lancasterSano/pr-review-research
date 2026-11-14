@@ -12,8 +12,10 @@ from rank.events import parse_ts, positives, review_events, is_bot
 from rank.history import AuthorHistory, ReviewerHistory
 from rank.split import assign_splits
 
-RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw"
-OUT_DIR = Path(__file__).resolve().parent / "output"
+import os
+
+RAW_DIR = Path(os.environ.get("RANK_RAW_DIR") or Path(__file__).resolve().parents[1] / "data" / "raw")
+OUT_DIR = Path(os.environ.get("RANK_OUT_DIR") or Path(__file__).resolve().parent / "output")
 
 REPOS = [
     "angular_angular", "discourse_discourse", "django_django", "facebook_react",
@@ -34,16 +36,23 @@ CONTENT_FEATURES = ["additions", "deletions", "changed_files", "is_draft"]
 def _first_review_at(pr):
     ts = [parse_ts(r.get("submittedAt")) for r in (pr.get("reviews") or {}).get("nodes") or []
           if (r.get("author") or {}).get("login") and (r.get("author") or {}).get("login") != (pr.get("author") or {}).get("login")
-          and not is_bot((r.get("author") or {}).get("login"))]
+          and not is_bot((r.get("author") or {}).get("login"), (r.get("author") or {}).get("__typename"))]
     ts += [parse_ts(c.get("createdAt")) for th in (pr.get("reviewThreads") or {}).get("nodes") or []
            for c in (th.get("comments") or {}).get("nodes") or []
            if (c.get("author") or {}).get("login") and (c.get("author") or {}).get("login") != (pr.get("author") or {}).get("login")
-           and not is_bot((c.get("author") or {}).get("login"))]
+           and not is_bot((c.get("author") or {}).get("login"), (c.get("author") or {}).get("__typename"))]
     ts = [t for t in ts if t]
     return min(ts) if ts else None
 
 
-def build_repo(repo, prs, warmup_days=90, cand_window_days=180, log=None):
+# AAIT 2026 constants; the sensitivity run (revision/r3_rank_sens.sh) overrides them from the CLI
+WARMUP_DAYS = 90
+CAND_WINDOW_DAYS = 180
+SPLIT_FRACTIONS = (0.6, 0.2, 0.2)
+
+
+def build_repo(repo, prs, warmup_days=WARMUP_DAYS, cand_window_days=CAND_WINDOW_DAYS,
+               fractions=SPLIT_FRACTIONS, log=None):
     prs = [p for p in prs if p.get("createdAt")]
     prs.sort(key=lambda p: p["createdAt"])
     for p in prs:
@@ -55,7 +64,7 @@ def build_repo(repo, prs, warmup_days=90, cand_window_days=180, log=None):
         first_by_pr.setdefault(e["pr"], {})[e["reviewer"]] = e["first_at"]
     rh = ReviewerHistory(events)
     ah = AuthorHistory(prs)
-    splits = assign_splits([p["_created"] for p in prs], warmup_days=warmup_days)
+    splits = assign_splits([p["_created"] for p in prs], warmup_days=warmup_days, fractions=fractions)
 
     pair_rows, pr_rows = [], []
     total_active_30d_cache = {}
@@ -98,17 +107,34 @@ def build_repo(repo, prs, warmup_days=90, cand_window_days=180, log=None):
     return pd.DataFrame(pair_rows), pd.DataFrame(pr_rows)
 
 
-def main(repos=None):
+def parse_args(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description="Build the (PR x candidate) pairs for the ranking experiments.")
+    ap.add_argument("repos", nargs="*", help="repositories to build (default: all 12)")
+    ap.add_argument("--warmup-days", type=int, default=WARMUP_DAYS)
+    ap.add_argument("--cand-window-days", type=int, default=CAND_WINDOW_DAYS)
+    ap.add_argument("--fractions", type=lambda s: tuple(float(x) for x in s.split(",")), default=SPLIT_FRACTIONS,
+                    help="train,val,test shares, e.g. 0.7,0.15,0.15")
+    a = ap.parse_args(argv)
+    if len(a.fractions) != 3 or abs(sum(a.fractions) - 1.0) > 1e-9:
+        ap.error("--fractions needs three shares that sum to 1")
+    return a
+
+
+def main(repos=None, warmup_days=WARMUP_DAYS, cand_window_days=CAND_WINDOW_DAYS, fractions=SPLIT_FRACTIONS):
     import json, time
-    OUT_DIR.mkdir(exist_ok=True)
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"build: warmup_days={warmup_days} cand_window_days={cand_window_days} fractions={fractions}", flush=True)
     for repo in repos or REPOS:
         t = time.time()
         prs = json.load(open(RAW_DIR / repo / "merged_prs.json"))
-        pairs, prtab = build_repo(repo, prs, log=sys.stdout)
+        pairs, prtab = build_repo(repo, prs, warmup_days=warmup_days, cand_window_days=cand_window_days,
+                                  fractions=fractions, log=sys.stdout)
         pairs.to_parquet(OUT_DIR / f"pairs_{repo}.parquet", index=False)
         prtab.to_parquet(OUT_DIR / f"prs_{repo}.parquet", index=False)
         print(f"{repo}: {len(prtab)} PRs, {len(pairs)} pairs, {time.time()-t:.0f}s", flush=True)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:] or None)
+    a = parse_args()
+    main(a.repos or None, warmup_days=a.warmup_days, cand_window_days=a.cand_window_days, fractions=a.fractions)

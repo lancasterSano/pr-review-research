@@ -3,8 +3,17 @@
 All timestamps are timezone-aware UTC datetimes. A reviewer "event" is the
 first human interaction (review submission or thread comment) of a reviewer
 on a PR; the author of the PR and bots never produce events.
+
+Which accounts are people is set by RANK_ACCOUNTS:
+  "regex"  (default) the name regex below, as in the AAIT 2026 paper;
+  "shared" the account classification shared with the dissertation
+           (revision/taskF1_duration_language.participant_class: audited
+           lists of AI assistants and bots plus the GitHub account type);
+           only the class "human" interacts.
 """
+import os
 import re
+import sys
 from datetime import datetime
 
 # Explicit bot markers only. A human handle that merely contains "bot" as a
@@ -18,8 +27,26 @@ _BOT_RE = re.compile(
 )
 
 
-def is_bot(login):
-    return bool(login) and bool(_BOT_RE.search(login))
+ACCOUNTS = os.environ.get("RANK_ACCOUNTS", "regex")
+_participant_class = None
+
+
+def _shared_class(login, typename=None):
+    global _participant_class
+    if _participant_class is None:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "revision"))
+        from taskF1_duration_language import participant_class
+        _participant_class = participant_class
+    return _participant_class(login, typename)
+
+
+def is_bot(login, typename=None, accounts=None):
+    """True if the account must not count as a reviewer (see module docstring)."""
+    if not login:
+        return False
+    if (accounts or ACCOUNTS) == "shared":
+        return _shared_class(login, typename) != "human"
+    return bool(_BOT_RE.search(login))
 
 
 def parse_ts(s):
@@ -33,19 +60,23 @@ def _author_login(obj):
     return a.get("login") or ""
 
 
+def _author_type(obj):
+    return ((obj or {}).get("author") or {}).get("__typename")
+
+
 def _interactions(pr):
     """Yield (login, datetime) for every human, non-author review interaction."""
     author = _author_login(pr)
     for r in (pr.get("reviews") or {}).get("nodes") or []:
         login = _author_login(r)
         t = parse_ts(r.get("submittedAt"))
-        if login and t and login != author and not is_bot(login):
+        if login and t and login != author and not is_bot(login, _author_type(r)):
             yield login, t
     for th in (pr.get("reviewThreads") or {}).get("nodes") or []:
         for c in (th.get("comments") or {}).get("nodes") or []:
             login = _author_login(c)
             t = parse_ts(c.get("createdAt"))
-            if login and t and login != author and not is_bot(login):
+            if login and t and login != author and not is_bot(login, _author_type(c)):
                 yield login, t
 
 

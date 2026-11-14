@@ -26,8 +26,9 @@ csv.field_size_limit(10 ** 9)
 from paths import DISSERTATION
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_DIR = os.path.join(ROOT, "data", "raw")
-PROCESSED_DIR = os.path.join(ROOT, "data", "processed")
+# PRR_RAW_DIR / PRR_PROCESSED_DIR point a separate clone at the data (read only).
+RAW_DIR = os.environ.get("PRR_RAW_DIR") or os.path.join(ROOT, "data", "raw")
+PROCESSED_DIR = os.environ.get("PRR_PROCESSED_DIR") or os.path.join(ROOT, "data", "processed")
 MERGED_CSV = os.path.join(PROCESSED_DIR, "all_merged_features.csv")
 OPEN_CSV = os.path.join(PROCESSED_DIR, "all_open_features.csv")
 OUT_DIR = os.path.join(DISSERTATION, "journal_articles", "HAIT_2026", "revision_results")
@@ -172,6 +173,37 @@ AI_ASSISTANTS = {
     "diffray-bot": "Diffray",
     # Devin — LLM software agent
     "devin-ai-integration": "Devin",
+    # ── Found by the corpus v2 audit (taskV2_login_audit.py, 40 repositories);
+    #    each verified by reading sample review / thread bodies.
+    # Sentry AI code review (Seer): "**Bug:** …" / "Potential bug" findings
+    "sentry": "Sentry AI code review (Seer)",
+    "seer-by-sentry": "Sentry AI code review (Seer)",
+    # Sentry Warden — LLM review agents (security findings in prose)
+    "sentry-warden": "Sentry Warden",
+    # Ito — AI QA agent posting failures found in a diff run (app.ito.ai)
+    "itoqa": "Ito AI QA",
+    # Discourse "Patch Triage Review" — LLM reviewer that also requests changes
+    "discourse-patch-triage": "Discourse Patch Triage (LLM reviewer)",
+    # Hugging Face "Serge" — LLM reviewer ("🤗 **Serge** says: …")
+    "sergereview": "Hugging Face Serge",
+    # Datadog Bits AI code review ("BITS CODE REVIEW" badge)
+    "datadoghq-integration": "Datadog Bits AI code review",
+    # Qodo agent posting LLM suggestions from a user account
+    "qodoai-agent": "Qodo agent",
+    # LLM coding agents that author changes and answer review threads
+    # ("Addressed in the latest push: …", "Agreed — applying your suggestion")
+    "vs-code-engineering": "VS Code engineering agent",
+    "vercel-fleet-prod": "Vercel Fleet agent",
+    "vercel-fleet": "Vercel Fleet agent",
+    "anthropic-code-agent": "Claude Code agent",
+    "agent-sandbox-woocommerce": "coding agent (woocommerce)",
+    # Accounts whose events are machine-written: structured LLM reviews or
+    # thread replies ("🤖 …", JSON-wrapped bodies)
+    "phillip-kruger-bot": "LLM review agent",
+    "opilot-agent": "LLM coding agent",
+    "perfloop-agent": "LLM coding agent",
+    "joestump-agent": "LLM coding agent",
+    "blut-agent": "LLM coding agent",
     # ── Not observed in this corpus, kept so a corpus refresh classifies them
     #    correctly without another manual audit.
     "sourcery-ai": "Sourcery AI",
@@ -194,6 +226,10 @@ UNCERTAIN = {
     # Posts one structured, LLM-styled review on woocommerce/woocommerce#55508.
     # No tool signature, no app-account naming convention, single occurrence.
     "agent-dave": "structured LLM-style review, 1 PR, provenance unverified",
+    # Corpus v2: security scanner with optional AI triage; bodies look rule-based
+    "aikido-pr-checks": "security scanner, AI involvement unverified",
+    # Corpus v2: four empty-body reviews on next.js, nothing else to go on
+    "javanio627-bot": "empty-body reviews, provenance unverified",
 }
 
 # Deliberately NOT in AI_ASSISTANTS, although they are automation:
@@ -229,6 +265,68 @@ NON_AI_BOTS = {
     "semantic-release-bot": "release automation",
     "size-limit-action": "bundle size reporter",
     "next-stats-bot": "bundle size reporter",
+    # ── Found by the corpus v2 audit (taskV2_login_audit.py). Accounts that
+    #    GitHub reports as Bot, or user accounts whose events are all automated.
+    # auto-approvers: approve dependency / translation PRs, empty bodies
+    "ciliumbot": "auto-approver (cilium)",
+    "servo-bot": "auto-approver (servo)",
+    "grafana-pr-approver": "auto-approver (grafana)",
+    "woocommercebot": "service account (woocommerce)",
+    "keycloak-github-bot": "flaky-test reporter (keycloak)",
+    # merge queues, required-review and policy apps
+    "github-merge-queue": "merge queue",
+    "pullapprove": "review policy app",
+    "gh-policy-bot-grafana-ops": "policy app",
+    "microsoft-github-policy-service": "policy app",
+    "maintainer-s-little-helper": "triage automation (cilium)",
+    # dependency, release, backport and sync automation
+    "cilium-renovate": "dependency updates",
+    "renovate-sh-app": "dependency updates",
+    "hf-dependantbot-rollout": "dependency updates",
+    "cilium-release-bot": "release automation",
+    "vercel-release-bot": "release automation",
+    "supabase-cli-releaser": "release automation",
+    "internal-releases": "release automation",
+    "nextjs-bot": "release automation",
+    "next-js-bot": "release automation",
+    "scikit-learn-bot": "release automation",
+    "eslintbot": "release automation",
+    "decidim-bot": "translation / release automation",
+    "giteabot": "backport automation",
+    "angular-robot": "repository automation",
+    "nodejs-github-bot": "repository automation",
+    "grafana-pr-automation": "repository automation",
+    "grafana-go-workspace-bot": "repository automation",
+    "grafana-writer": "repository automation",
+    "alerting-team": "repository automation",
+    "auto-committer": "repository automation",
+    "unified-ci-app": "CI app",
+    "blacksmith-sh": "CI runners",
+    "airlock-confluentinc": "repository automation",
+    "terraform-aws-provider": "repository automation",
+    "oss-core-libraries-dashboard": "repository automation",
+    "hashicorp-copywrite": "licence header automation",
+    "supabase-supabase-autofixer": "content sync automation",
+    "sync-l10n-for-pdf-js": "translation sync",
+    "meta-codesync": "code sync",
+    "brew-commit-app": "repository automation",
+    "imgbot": "image optimisation",
+    "trunk-io": "merge queue / CI",
+    "ecc-tools": "repository automation",
+    "linear-code": "issue tracker integration",
+    "mm-prodsec-bot": "security automation (mattermost)",
+    "jlaportebot": "personal automation account, no bodies",
+    # static analysis and security scanners (rule-based findings)
+    "github-code-quality": "static analysis reporter",
+    "snyk-io": "security scanner",
+    "semgrep-code-grafana": "static analysis reporter",
+    "semgrep-code-glpi-alex-test": "static analysis reporter",
+    "semgrep-code-getsentry": "static analysis reporter",
+    "wiz-inc-0e7a25329d": "security scanner",
+    "orca-security-us": "security scanner",
+    "ibm-mend-app": "dependency scanner",
+    "qltysh": "static analysis reporter",
+    "hf-security-analysis": "security scanner",
 }
 
 
@@ -252,6 +350,44 @@ def classify_login(login):
     if k in UNCERTAIN:
         return "uncertain"
     return "human"
+
+
+def classify_account(login, typename=None):
+    """classify_login() plus the account type GitHub reports (corpus v2).
+
+    An account GitHub marks as Bot (a GitHub App) that is on no list is
+    automation, not a person: 'other_bot'. The lists still decide first, so a
+    listed LLM reviewer stays 'ai_assistant'. Bots running under ordinary user
+    accounts (ciliumbot, servo-bot, ...) are caught only by the lists, which is
+    why taskV2_login_audit.py has to be rerun on every corpus refresh. A missing
+    login (deleted "ghost" account) is human, as in participant_class().
+    """
+    if not login:
+        return "human"
+    cls = classify_login(login)
+    if cls == "human" and (typename == "Bot" or login.lower().endswith("[bot]")):
+        return "other_bot"
+    return cls
+
+
+def author_group(login, typename=None):
+    """Who prepared the change: 'human', 'ai_agent', 'other_bot' or 'uncertain'.
+
+    LLM coding agents (copilot-swe-agent, ...) author changes that people
+    review for real, so their PRs stay in the analysis as a separate group.
+    """
+    cls = classify_account(login, typename)
+    return "ai_agent" if cls == "ai_assistant" else cls
+
+
+def in_main_population(login, typename=None):
+    """Author decision 29.10.2026: the main analysis of corpus v2 excludes PRs
+    whose author is other automation (dependency updates, releases, backports,
+    syncs): auto-approvers and batch merges distort time and iterations there.
+    PRs by people and by LLM coding agents stay; the variant with bot-authored
+    PRs is reported as a sensitivity check.
+    """
+    return author_group(login, typename) in ("human", "ai_agent")
 
 
 def ai_tool_name(login):
