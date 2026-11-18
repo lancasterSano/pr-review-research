@@ -421,6 +421,15 @@ python revision/r4_calc/r4_e5_numbers.py
 # 7. spread of the E1 deviation categories: copy r2_alignment_v2.json of several
 #    runs of step 4 into revision/output/r4/e1_repeats/runs/ (the first as ref.json)
 python revision/r4_calc/r4_e1_repeats.py
+# 8. chapter 4: effect of the rules on efficiency on constructed next periods (E9) and the later checks
+python revision/r4_calc/r4_e9_baseline.py
+python revision/r4_calc/r4_e9_eff.py
+python revision/r4_calc/r4_e9b.py                 # reads the output of r4_no_overlap_thr.py
+python revision/r4_calc/r4_e9c.py
+python revision/r4_calc/r4_newdata.py
+python revision/r4_calc/r4_mrr_tol.py             # after r4_newdata.py
+python revision/r4_calc/r4_hparams.py --set H0check   # then --set H1, H2, H3 and --summarise
+/path/to/alignment-env/bin/python revision/r4_calc/r4_negtraces.py   # environment of requirements-alignment.txt
 ```
 
 | Script | What it computes |
@@ -432,7 +441,7 @@ python revision/r4_calc/r4_e1_repeats.py
 | `r3_ladder_v1.py`, `r3_rank_sens.sh`, `r3_rank_sens_summary.py` | Contribution of each change on the 12-repository corpus; sensitivity of the ranking constants |
 | `r2/` | Chapter 2 tables: review threads and assistant reviews, replay of the traces by the state machine, alignments of the process projection, all chapter 2 numbers |
 | `r3_calib_stability.py`, `r3_calib_adversarial/` | Calibration and thresholds on short project histories |
-| `r4_calc/` | Chapter 4 checks of the methodology premises, the rollback rule and rule R4; see [`revision/r4_calc/README.md`](revision/r4_calc/README.md) |
+| `r4_calc/` | Chapter 4 checks of the methodology premises, the rollback rule and rule R4, negative traces for the process model, robustness to the CatBoost hyperparameters, Hit@1 and MRR, prediction and ranking on constructed next periods, and the effect of the rules on process efficiency (E9); see [`revision/r4_calc/README.md`](revision/r4_calc/README.md) |
 | `taskV2_login_audit.py` | Audit of participant logins of corpus v2 (writes logins; keep the output private) |
 
 Environment variables (all optional; the defaults are the folders above):
@@ -453,6 +462,7 @@ Environment variables (all optional; the defaults are the folders above):
 | `RANK_ACCOUNTS`, `RANK_RAW_DIR`, `RANK_OUT_DIR` | ranking: `shared` uses the audited account lists of `revision/taskC_common.py` instead of the paper's regex (`regex`, the AAIT 2026 setting); input and output folders |
 | `R3_CONTRACT` | optional: read the ranking keys from the dissertation's number contract instead of `r3_rank_keys.json` |
 | `R3_NUMBERS_JSON` | optional: chapter 3 numbers of the dissertation for a comparison in `r4_no_overlap.py` |
+| `R4_NUMBERS_JSON` | chapter 4 numbers of the dissertation, checked by the E9 scripts, `r4_newdata.py`, `r4_mrr_tol.py` and `r4_hparams.py` (default `revision/r4_calc/r4_numbers.json`, included in this repository) |
 
 `r2_alignment_v2.py` needs pm4py, which is kept out of `requirements.txt`: create
 a separate environment from `requirements-alignment.txt`. Fitness, the share of
@@ -467,7 +477,7 @@ numbers of `make_tables_r2.py` read the account lists of tag `v1.2.0` with
 Fixed seeds: 42 for the models, the ranker and the bootstrap of the reporting
 step; 0 for the random ranking baseline; 20261113 in `r3_calib_stability.py`;
 1 in `adv_reliab.py`; 20261031 for the bootstrap intervals of
-`revision/r2/r2_ai_compare_v2.py`; 20261114 and 20261115 in `revision/r4_calc/`; 20261015
+`revision/r2/r2_ai_compare_v2.py`; 20261114, 20261115 and 20261116 in `revision/r4_calc/`; 20261015
 for the alignment sample.
 
 
@@ -504,8 +514,9 @@ data (see [Fields that concern people](#fields-that-concern-people)).
   (information usage restrictions) and the
   [GitHub General Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 
-This repository therefore ships only code and the aggregate manifest. To
-obtain the data, run the collector.
+This repository therefore ships only code, the aggregate manifest and the aggregate chapter 4
+numbers of the dissertation (`revision/r4_calc/r4_numbers.json`: per-repository and summary
+values, no per-request records and no account logins). To obtain the data, run the collector.
 
 ## Citation
 

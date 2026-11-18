@@ -24,17 +24,18 @@ identifiers:
     value: 10.5281/zenodo.24232290
     description: DOI of version 1.3.0, with the analyses of dissertation chapters 2 to 4.
 license: MIT
-version: "1.3.0"
-date-released: "2026-11-14"
+version: "1.4.0"
+date-released: "2026-11-19"
 abstract: >-
   Collector of closed pull requests and their review history from public
   GitHub repositories (GraphQL API), with per-PR feature computation and a
   manifest of a 40-repository corpus, the submission-time models and later
   analyses of the HAIT 2026, ІКТ 2026 and ІТІА 2026 papers, the reviewer
   ranking experiments of the AAIT 2026 paper, and the analyses of dissertation
-  chapters 2 to 4 (process model checks, prediction, reviewer ranking and
-  decision rules) on the 40-repository corpus. Built for a PhD dissertation on
-  the efficiency of the code review process.
+  chapters 2 to 4 (process model checks with negative traces, prediction,
+  reviewer ranking, decision rules and their effect on process efficiency on
+  constructed next periods) on the 40-repository corpus. Built for a PhD
+  dissertation on the efficiency of the code review process.
 keywords:
   - code review
   - pull requests

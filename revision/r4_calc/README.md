@@ -166,3 +166,182 @@ O/E outside [0.8; 1.25], `stab.<k>.stable_first_n`, firings on the history for t
 the floor, the threshold on the whole earlier half (`thr_early`) and `rules.none` (= `rules.prior`).
 ECE mirror keys in percentage points: `ece_pct.*` and `diff_ece_pct_const_early_minus_corr*` (sign: constant
 minus correction, positive = correction better).
+
+## E9 preparation: baseline efficiency Eff without the technology (`r4_e9_baseline.py`)
+
+All scripts from here to the end of this file read `revision/output/` written by steps 0 to 7 of the
+run order in the main README, which need the collected corpus; the raw data is not published (see
+*Personal data and GitHub terms* there).
+`r4_numbers.json` holds no input data, but six of the eight scripts need it: they check their results
+against it and stop when it is missing (see *Reference numbers of chapter 4* below).
+Run them in this order, each on the main (not `--dev`) output of the previous ones:
+`r4_e9_baseline.py`, `r4_e9_eff.py` (its `numbers.json` is read by `r4_e9b.py` and `r4_e9c.py`),
+`r4_e9b.py`, `r4_e9c.py`, `r4_newdata.py` (reads `variants_e9b_r4.csv` and `numbers_e9b.json` of
+the main `r4_e9b.py` run), `r4_mrr_tol.py` (reads the `r4_newdata.py` output); `r4_hparams.py`
+and `r4_negtraces.py` need only the chapter 3 and chapter 2 outputs.
+The variants, seeds and criteria named below as fixed before a run were recorded in the author's
+notes, which are not part of this repository.
+
+Eff(p) of chapter 2 (2.3.4; appendix B.3) on the main sample of the `r3_b40d` table
+(`hait_filter == 1 & in_main == 1`, 189 646 PRs, 40 repositories). Components by human events:
+mid-rank F_r of `t_m_h_D` (negative values clipped to 0) and `n_it_human`, plus `stale30_D`;
+weights 1/3 each, components alone reported too. Normalisation A: F_r over PRs of the project
+merged strictly before t_0(p), Eff not computed below n_min = 30. Normalisation B: F_r fixed on
+the earlier half of the project (sort by created, h = n // 2, as `rule_thresholds` of E8), Eff for
+the later half. Checks (asserts and `revision/tests/test_r4_e9_baseline.py`): mean F = 0.5 on the
+earlier half against itself, row order and monotone transforms of t_m do not change the result.
+The script also asserts n, it2 and stale shares and the t_m median of every repository against the
+chapter 4 numbers of the dissertation (`R4_NUMBERS_JSON`, see the end of this file).
+Diagnostic `diag.*`: rolling F over PRs created (not merged) before t_0.
+
+```bash
+$PY revision/r4_calc/r4_e9_baseline.py   # revision/output/r4/e9_eff/baseline/{numbers.json, by_repo.csv, by_pr.parquet}
+```
+
+## E9: share of Eff losses on the requests the rules act on (`r4_e9_eff.py`)
+
+The variants, seeds, measures and criteria were fixed in the author's notes before any E9 result was seen.
+Rules R_it (R1/R2 on the LORO forecast P_it), R_st (R3 on P_st) and both; thresholds
+`r3_report_stats.choose_threshold` (n_f = 20, c = 0.1/0.2/0.3) re-chosen on the history of every
+variant; removal n_it -> 1 (if >= 2), stale -> 0, t_m unchanged; Eff with F fixed on the history
+(`r4_e9_baseline.mid_cdf`). Variants per project: `shuf` (200 permutations of whole requests,
+first n // 2 = history), `block` (100 weekly block bootstraps inside the E8 halves), `fact` (the E8
+split). A = removed share of the next-period Eff sum, A_rand = (k / n) * removable share,
+lift = A / A_rand; mean over the 40 projects, cluster bootstrap over repositories (B = 10 000,
+seed 20261115). Checks: K5 reproduces the E8 thresholds (`thresholds_by_repo.csv` of the chapter 3
+reporting step and the chapter 4 numbers) and stops on a mismatch; K1 null action, K2 shuffled
+forecasts, K3 input row order (recorded in `checks.json` and `runs.jsonl`, they do not stop the run); K4 oracle and the vectorised threshold in
+`revision/tests/test_r4_e9_eff.py`.
+
+```bash
+$PY revision/r4_calc/r4_e9_eff.py --dev   # seed 1, 3 projects -> revision/output/r4/e9_eff/dev/
+$PY revision/r4_calc/r4_e9_eff.py         # main -> revision/output/r4/e9_eff/{numbers.json, by_repo.csv, variants.csv, checks.json}
+```
+
+Flat keys `e9.<scheme>.<rule>.<c>.<w>.*` (w3 = weights 1/3; tm, nit, st = one component with weight 1),
+controls `e9.ctrl.shuf.*`. Every run is appended to `revision/output/r4/e9_eff/runs.jsonl`.
+
+## E9 extension: rule R4 and the R3 c grid (`r4_e9b.py`)
+
+Added after the E9 results were seen; fixed in the author's notes before this calculation. E9b: rule R4 on the
+ranking test PRs of the 12 ranking repositories that are in the main sample (dt_r from
+`output/r4/no_overlap_thr/per_pr.csv`, written by `r4_no_overlap_thr.py`), removal
+t_m' = max(t_m - k * dt_r, 0) with k = 1 and the empirical k (OLS on logs with repository fixed
+effects and t_0 controls; median regression in hours, bootstrap in parallel processes); R1+R2+R4 and
+re-ranking on all requests. R3grid: R3 on the c grid 0.2 ... 0.95 with the E9 permutations. Output
+`output/r4/e9_eff/{numbers_e9b.json, checks_e9b.json, variants_e9b_r4.csv, variants_e9b_r3.csv}`,
+keys `e9.r4.*`, `e9.r3grid.*`; runs appended to `runs.jsonl`.
+
+```bash
+$PY revision/r4_calc/r4_e9b.py --dev   # seed 1, 3 repositories -> output/r4/e9_eff/dev/
+$PY revision/r4_calc/r4_e9b.py         # main (about an hour or more: 400 median regressions)
+```
+
+## E9 extension: simple selection baselines and the bound (`r4_e9c.py`)
+
+Added after the E9 results were seen; fixed in the author's notes before this calculation. B1: the same number k of requests as rule R1/R2 (c = 0.2) in every project and variant,
+chosen by a heuristic known at submission instead of the forecast P_it: largest change size, most
+changed files, newest author (missing value = lowest priority, ties by a fixed random stream).
+Criterion named in advance: the lower bound of the 95 % cluster bootstrap interval of
+G_model / G_size is above 1; the other heuristics are reported without a criterion. B3: sensitivity
+of the bound, on the requests with an R1/R2 action and n_it >= 2 also t_m -> min(t_m, Q_r), Q_r =
+median t_m of the history requests with n_it = 1. `descr`: the oracle ceiling (all n_it >= 2 -> 1),
+G as its share and the realised precision of R1/R2 on the next period, on the same E9 variants
+(seed 20261115); the run stops unless it reproduces `e9.shuf.it.<c>.w3.A_pct` and `Arand_pct`.
+B1 and B3 use scheme `shuf` of E9 on seed 20261116.
+
+```bash
+$PY revision/r4_calc/r4_e9c.py --dev   # seed 1, 3 projects
+$PY revision/r4_calc/r4_e9c.py         # main -> revision/output/r4/e9_eff/*_e9c.*
+```
+
+## Prediction and ranking on constructed next periods (`r4_newdata.py`)
+
+An addendum after the results were seen; the variants, seeds and measures were fixed in the
+author's notes before this code. No confirmation criterion, a description of stability. AUC: the saved LORO
+forecasts of chapter 3 (IT: n_it >= 2; TFR: long wait for the first review), no refitting, on the
+200 next periods of E9 (scheme `shuf`, seed 20261115); per-repository AUC, mean over repositories.
+Ranking: the fixed ranking model (`test_scored.parquet` of the `rank_shared` run of
+`r3_night.sh`) on 200 next periods made of half of each repository's ranking test PRs; Hit@1,
+Hit@3 and MRR of the model, the most familiar rule and the two tolerance re-rankings. Rule R4 at
+c = 0.2 on the E9b infrastructure: thresholds on the history, firing share, expected latency of the
+first candidate before and after, Hit@1 / Hit@3 / MRR on the firings and on all next-period PRs.
+E6/E7 on the factual split in Hit@1, Hit@3 and MRR. The factual numbers are reproduced first; a
+mismatch stops the run.
+
+```bash
+$PY revision/r4_calc/r4_newdata.py --dev   # seed 1, 10 variants -> revision/output/r4/newdata/dev/
+$PY revision/r4_calc/r4_newdata.py         # main -> revision/output/r4/newdata/
+```
+
+## Admissibility bound by MRR (`r4_mrr_tol.py`)
+
+A ranking sensitivity row fixed in the author's notes before this code; the main bound stays Hit@3. Same level
+(95 %), family, objectives and tie rule as `rank/run_e4.select_and_headline` on the same validation
+table; only the admissibility measure is MRR instead of Hit@3. Reports on the test PRs, next to the
+main choice: tolerance, Gini of first places, distinct first-place people, median expected latency of
+the first candidate, cost in Hit@1, Hit@3 and MRR; then the costs on the 200 next periods of
+`r4_newdata.py` and rule R4 at c = 0.2 with the MRR latency tolerance. Run after `r4_newdata.py`.
+
+```bash
+$PY revision/r4_calc/r4_mrr_tol.py   # main -> revision/output/r4/mrr_tol/  (--no-variants: factual split only)
+```
+
+## E3 robustness to the CatBoost hyperparameters (`r4_hparams.py`)
+
+Three alternative sets fixed before the run (H1 depth 4; H2 depth 8; H3 learning rate 0.025,
+1 000 trees, l2_leaf_reg 10); everything else is the main model of chapter 3 (`r3_v2_models`: table,
+features t0, clock D, population main, train-median imputation, LORO folds, seed 42, class weights).
+Targets IT, TFR, ST, TM. Mean AUC over repositories with a cluster bootstrap interval, and the
+paired difference with the main set H0 (B = 10 000, seed 42). The E3 verdict is robust for a target
+if no set changes it and no difference is material (the interval excludes 0 and |delta| >= 0.02).
+H0 is not refitted: its numbers come from the stored `r3_b40d` predictions, and two folds per target
+are refitted to check the reproduction (the summary stops if max |delta p| > 1e-6). Folds are saved after every
+fit, so an interrupted run resumes.
+
+```bash
+$PY revision/r4_calc/r4_hparams.py --set H0check   # reproduction of 2 folds per target
+$PY revision/r4_calc/r4_hparams.py --set H1        # one process per set; resumable
+$PY revision/r4_calc/r4_hparams.py --set H2
+$PY revision/r4_calc/r4_hparams.py --set H3
+$PY revision/r4_calc/r4_hparams.py --summarise     # revision/output/r4/hparams/{numbers.json, checks.json}
+```
+
+## E1 negative traces (`r4_negtraces.py`)
+
+Paired design: every one of the 8 000 alignment traces of chapter 2 is mutated separately in each
+class, and the fitness of the mutant on the chapter 2 workflow net is compared with the fitness of the
+same original trace. Classes that must be detected (criterion: fitness drops in >= 95 % of pairs):
+M1 all approvals removed, M2 merge moved to the first approval, M3 a review or revision after the
+merge, M4 a change request right after the first approval, M6a no opening, M6b merge first. M5 (one
+adjacent pair swapped) and M4 on the relaxed net are reported without a criterion. Harmless changes
+that must not be punished (fitness drops in <= 5 % of pairs): Kpa a repeated comment, Kpb a revision
+before the first approval, Kpc an assistant run. The state automaton (one rejection rule: a human
+approval before the merge) is applied to the same sequences only as an interpretation. The chapter 2
+code `revision/r2/r2_alignment_v2.py` is imported unchanged, so the script needs the environment of
+`requirements-alignment.txt` and the output of `revision/r2/` (`R2_DIR`). The mutation tests need no
+pm4py; the alignment tests run in that environment with
+`python revision/tests/test_r4_negtraces.py`. The pm4py playout of the 1 000 control traces is not
+reproducible run to run even with the seed fixed, so `neg.playout.*` (e.g. the M5 drop share) varies
+slightly between runs; the numbers on the 8 000 alignment traces are reproducible.
+
+```bash
+$PY revision/r4_calc/r4_negtraces.py --dev   # 2 repositories x 20 traces
+$PY revision/r4_calc/r4_negtraces.py         # main -> revision/output/r4/negtraces/{numbers.json, checks.json, pairs.csv, runs.jsonl}
+```
+
+## Reference numbers of chapter 4 (`R4_NUMBERS_JSON`)
+
+`r4_e9_baseline.py`, `r4_e9_eff.py`, `r4_e9b.py`, `r4_e9c.py` (the last two through the E8 reproduction
+check of `r4_e9_eff.py`), `r4_newdata.py`, `r4_mrr_tol.py` and `r4_hparams.py` compare what they
+recompute with the chapter 4 numbers of the dissertation, a nested JSON with the
+sections the scripts read: `corpus`, `repo_table`, `repo_total`, `thr`, `r4`, `r4_noxt`, `pred`
+and `rank`. The file is included as `revision/r4_calc/r4_numbers.json` (these sections as reported
+in the dissertation, 16 November 2026); it holds aggregates only: repository names, AI tool names,
+languages, numbers and a few Ukrainian labels of the dissertation tables (verdicts "так"/"ні",
+"переноситься", groups "компанія"/"спільнота", total "Разом"), no per-request records and no
+account logins. Counts of AI-assistant
+requests below 5 per repository (`repo_table[].ai_n`, `ai_pct`, `ai_top`) are set to null; no script
+reads them.
+Set `R4_NUMBERS_JSON` to compare against another copy. `r4_hparams.py` skips the comparison when
+the file is missing; the other scripts stop.
