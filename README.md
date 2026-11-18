@@ -529,6 +529,7 @@ The code is archived on Zenodo:
 - v1.1.0, the version used in the AAIT 2026 paper: [10.5281/zenodo.23534422](https://doi.org/10.5281/zenodo.23534422)
 - v1.2.0, which adds the HAIT 2026 models and the later analyses: [10.5281/zenodo.23537410](https://doi.org/10.5281/zenodo.23537410)
 - v1.3.0, which adds the analyses of dissertation chapters 2 to 4 on the 40-repository corpus: [10.5281/zenodo.24232290](https://doi.org/10.5281/zenodo.24232290)
+- v1.4.0, which adds the chapter 4 efficiency evaluation and the later checks: [10.5281/zenodo.24355348](https://doi.org/10.5281/zenodo.24355348)
 
 ## Contact
 

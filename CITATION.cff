@@ -23,6 +23,9 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.24232290
     description: DOI of version 1.3.0, with the analyses of dissertation chapters 2 to 4.
+  - type: doi
+    value: 10.5281/zenodo.24355348
+    description: DOI of version 1.4.0, with the chapter 4 efficiency evaluation and the later checks.
 license: MIT
 version: "1.4.0"
 date-released: "2026-11-19"
